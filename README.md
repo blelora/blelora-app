@@ -13,5 +13,13 @@ BLE LoRa Mobile App for iOS and Android built with Flutter
 
 [Getting Started](https://docs.flutter.dev/get-started/install)
 
+## iOS Development
+Install Flutter Development Environment above first.
+```
+cd blelora-app
+flutter build ios
+```
+Open `Runner.xcworkspace` with Xcode
+
 ## Firebase Libraries
 There are Firebase services used on the published app, if you do not require the firebase libraries you can simply remove them.
