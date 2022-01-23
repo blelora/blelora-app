@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 class ThemeColors {
+  // repeated colors
+  static const primaryColor = Color(0xFF301AD3);
+
   // backgrounds & icons
   static const scaffoldBackground = Color(0xFFf0f2f5);
-  static const appBarBackground = Color(0xFF22326e);
-  static const bottomNavigationBarBackground = Color(0xFF22326e);
+  static const appBarBackground = primaryColor;
+  static const bottomNavigationBarBackground = primaryColor;
   static const bottomNavigationIcon = Color(0xFF9e9e9e);
   static const bottomNavigationActiveIcon = Colors.redAccent;
   static const bottomNavigationBarItemBackground = Colors.redAccent;
