@@ -18,6 +18,7 @@ class App extends StatelessWidget {
         primaryColor: Colors.red,
         accentColor: Colors.redAccent,
       ),
+      debugShowCheckedModeBanner: false,
       home: const ParentWidget(),
     );
   }
