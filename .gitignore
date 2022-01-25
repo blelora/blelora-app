@@ -48,3 +48,6 @@ app.*.map.json
 # Google Firebase Config Files
 /android/app/google-services.json
 /ios/Runner/GoogleService-Info.plist
+
+# Google Play Store key sig
+upload-keystore.jks
