@@ -25,7 +25,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Need BLE permission</string>
+	<string>Used to connect with Devices and send firmware updates</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Need BLE permission</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
