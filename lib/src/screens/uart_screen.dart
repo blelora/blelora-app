@@ -11,12 +11,12 @@ class UartScreen extends StatefulWidget {
   final BluetoothCharacteristic uartTxChar;
   final sendTextController = TextEditingController();
 
-  UartScreen({
-    Key? key,
-    required this.device,
-    required this.uartRxChar,
-    required this.uartTxChar
-  }) : super(key: key);
+  UartScreen(
+      {Key? key,
+      required this.device,
+      required this.uartRxChar,
+      required this.uartTxChar})
+      : super(key: key);
 
   @override
   State<StatefulWidget> createState() => _UartScreenState();
@@ -24,9 +24,8 @@ class UartScreen extends StatefulWidget {
 
 class _UartScreenState extends State<UartScreen> {
   StreamController<List<String>> uartTxStreamController =
-  StreamController<List<String>>();
-  StreamController<String> uartRxStreamController =
-  StreamController<String>();
+      StreamController<List<String>>();
+  StreamController<String> uartRxStreamController = StreamController<String>();
 
   var uartTxCharList = <String>[];
 
@@ -38,8 +37,7 @@ class _UartScreenState extends State<UartScreen> {
     uartTxStreamController.add(['']);
 
     widget.uartTxChar.setNotifyValue(true).then((value) {
-      print("uartTxChar Notification Enabled Result " +
-          value.toString());
+      print("uartTxChar Notification Enabled Result " + value.toString());
       widget.uartTxChar.value.listen((value) {
         if (!uartTxStreamController.isClosed) {
           uartTxCharList.add(String.fromCharCodes(value));
@@ -69,39 +67,53 @@ class _UartScreenState extends State<UartScreen> {
           backgroundColor: ThemeColors.appBarBackground,
           actions: <Widget>[],
         ),
-        body: Column(children: <Widget>[
-          StreamBuilder<List<String>>(
-              stream: uartTxStreamController.stream,
-              initialData:[''],
-              builder: (c, snapshot) {
-                // print("in stream building: ${snapshot.data}");
-                return RichText(
-                  text: TextSpan(
-                    text: uartTxCharList.toString(),
-                    style: ThemeTextStyles.listTitle,
+        body: Padding(
+            padding: EdgeInsets.all(10.0),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Expanded(
+                    flex: 4,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: StreamBuilder<List<String>>(
+                          stream: uartTxStreamController.stream,
+                          initialData: [''],
+                          builder: (c, snapshot) {
+                            // print("in stream building: ${snapshot.data}");
+                            return RichText(
+                              textAlign: TextAlign.left,
+                              text: TextSpan(
+                                text: uartTxCharList.join().toString(),
+                                style: ThemeTextStyles.listTitle,
+                              ),
+                            );
+                          }),
+                    ),
                   ),
-                );
-              }),
-          Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(top: 10.0, left: 30.0, right: 30.0),
-              child: RichText(
-                text: TextSpan(
-                  text: 'Hello ',
-                  style: ThemeTextStyles.listTitle,
-                ),
-              )),
-          Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(top: 10.0, left: 40.0, right: 40.0),
-              child: TextFormField(
-                decoration: InputDecoration(
-                    labelText: 'Transmit Text',
-                    suffixIcon: RaisedButton(
-                        onPressed: () => uartRxStreamController.add(widget.sendTextController.text),
-                        child: Text("Send"))),
-                controller: widget.sendTextController,
-              ))
-        ]));
+                  // ),
+                  Container(
+                      // width: double.infinity,
+                      // height: MediaQuery.of(context).size.height,
+                      alignment: Alignment.bottomCenter,
+                      margin: const EdgeInsets.only(left: 5.0, right: 5.0),
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // First child is enter comment text input
+                            Expanded(
+                                child: TextFormField(
+                              decoration: InputDecoration(
+                                  labelText: 'Transmit Text',
+                                  suffixIcon: RaisedButton(
+                                      onPressed: () => uartRxStreamController
+                                          .add(widget.sendTextController.text),
+                                      color: ThemeColors.buttonBackground,
+                                      child: Text('SEND',
+                                          style: ThemeTextStyles.button))),
+                              controller: widget.sendTextController,
+                            ))
+                          ]))
+                ])));
   }
 }
