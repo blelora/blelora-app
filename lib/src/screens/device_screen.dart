@@ -8,6 +8,7 @@ import 'package:blelora_app/src/screens/dfu_screen.dart';
 import 'package:blelora_app/src/utils/textStyles.dart';
 
 import '../app.dart';
+import 'lorawan_screen.dart';
 
 class DeviceScreen extends StatefulWidget {
   const DeviceScreen({Key? key, required this.device}) : super(key: key);
@@ -19,8 +20,11 @@ class DeviceScreen extends StatefulWidget {
 class _DeviceScreenState extends State<DeviceScreen> {
   late BluetoothService dfuService;
   late BluetoothService uartService;
+  late BluetoothService credentialService;
   late BluetoothCharacteristic uartTxChar;
   late BluetoothCharacteristic uartRxChar;
+  late BluetoothCharacteristic credentialDataChar;
+  late BluetoothCharacteristic credentialStatusChar;
 
   bool foundChars = true;
   bool dfuRunning = false;
@@ -112,6 +116,9 @@ class _DeviceScreenState extends State<DeviceScreen> {
       uartService = services.singleWhere((s) =>
           s.uuid.toString() ==
           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
+      credentialService = services.singleWhere((s) =>
+          s.uuid.toString() ==
+          "bbb00000-0000-0000-0000-123456789abc");
       if (uartService != null) {
         uartRxChar = uartService.characteristics.singleWhere((s) =>
         s.uuid.toString() ==
@@ -120,8 +127,17 @@ class _DeviceScreenState extends State<DeviceScreen> {
         s.uuid.toString() ==
             "6e400003-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
       }
-      print(dfuService);
-      print(uartService);
+      if (credentialService != null) {
+        credentialDataChar = credentialService.characteristics.singleWhere((s) =>
+        s.uuid.toString() ==
+            "bbb10000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
+        credentialStatusChar = credentialService.characteristics.singleWhere((s) =>
+        s.uuid.toString() ==
+            "bbb20000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
+      }
+      // print(dfuService);
+      // print(uartService);
+      print(credentialService);
     } else {
       print("Error: Services is null");
     }
@@ -244,6 +260,33 @@ class _DeviceScreenState extends State<DeviceScreen> {
                               device: widget.device,
                               uartRxChar: uartRxChar,
                               uartTxChar: uartTxChar,
+                            );
+                          }));
+                        },
+                      );
+                    } else {
+                      return Icon(null);
+                    }
+                  }),
+            ),
+            ListTile(
+              title: Text('LoRaWAN', style: ThemeTextStyles.listTitle),
+              trailing: StreamBuilder<bool>(
+                  stream: charReadStatusStreamController.stream,
+                  initialData: false,
+                  builder: (c, snapshot) {
+                    if (snapshot.data == true) {
+                      return RaisedButton(
+                        child: Text('OPEN', style: ThemeTextStyles.button),
+                        color: ThemeColors.buttonBackground,
+                        textColor: Colors.white,
+                        onPressed: () {
+                          Navigator.of(context)
+                              .push(MaterialPageRoute(builder: (context) {
+                            return LorawanScreen(
+                              device: widget.device,
+                              credentialDataChar: credentialDataChar,
+                              credentialStatusChar: credentialStatusChar,
                             );
                           }));
                         },
