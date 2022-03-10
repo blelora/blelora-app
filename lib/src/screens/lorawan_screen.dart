@@ -9,6 +9,7 @@ import 'package:convert/convert.dart';
 
 class LorawanScreen extends StatefulWidget {
   final BluetoothDevice device;
+  final BluetoothCharacteristic controlChar;
   final BluetoothCharacteristic credentialDataChar;
   final BluetoothCharacteristic credentialStatusChar;
   final devEuiTextController = TextEditingController();
@@ -18,6 +19,7 @@ class LorawanScreen extends StatefulWidget {
   LorawanScreen(
       {Key? key,
       required this.device,
+      required this.controlChar,
       required this.credentialDataChar,
       required this.credentialStatusChar})
       : super(key: key);
@@ -30,6 +32,7 @@ class _LorawanScreenState extends State<LorawanScreen> {
   StreamController<List<String>> uartTxStreamController =
       StreamController<List<String>>();
   StreamController<String> devEuiStreamController = StreamController<String>();
+  StreamController<String> controlStreamController = StreamController<String>();
   StreamController<String> credentialsStatusStreamController =
       StreamController<String>();
 
@@ -45,24 +48,51 @@ class _LorawanScreenState extends State<LorawanScreen> {
       print(creds);
 
       widget.devEuiTextController.text =
-          hex.encode(creds.getRange(0, 8).toList());
+          hex.encode(creds.getRange(0, 8).toList()).toUpperCase();
       widget.appEuiTextController.text =
-          hex.encode(creds.getRange(8, 16).toList());
+          hex.encode(creds.getRange(8, 16).toList()).toUpperCase();
       widget.appKeyTextController.text =
-          hex.encode(creds.getRange(16, 32).toList());
+          hex.encode(creds.getRange(16, 32).toList()).toUpperCase();
       // Status Read
       widget.credentialStatusChar.read().then((value) {
         print("credential Status Char Read Result " + value.toString());
+        widget.controlChar.read().then((value) {
+          print("Control Char Read Result " + value.toString());
+          if (value[0] == 0) {
+            controlStreamController.add("Not Transmitting");
+          } else if (value[0] == 1) {
+            controlStreamController.add("Transmitting");
+          }
+        });
       });
     });
 
     credentialsStatusStreamController.add("");
   }
 
+  _writeControl(int ctrl) async {
+      widget.controlChar.write([ctrl]).then((value) {
+        widget.controlChar.setNotifyValue(true).then((value) {
+          print("control Char Notification Enabled Result " +
+              value.toString());
+          widget.controlChar.value.listen((value) {
+            print("control Char notification Result " +
+                value.toString());
+            if (value[0] == 0) {
+              controlStreamController.add("Not Transmitting");
+            } else if (value[0] == 1) {
+              controlStreamController.add("Transmitting");
+            }
+          });
+        });
+      });
+
+  }
+
   _writeDataCredentials() async {
     var creds = getCredentialList();
     if (!creds.isEmpty) {
-      widget.credentialDataChar.write(getCredentialList()).then((value) {
+      widget.credentialDataChar.write(creds).then((value) {
         widget.credentialStatusChar.setNotifyValue(true).then((value) {
           print("credential Status Char Notification Enabled Result " +
               value.toString());
@@ -210,7 +240,41 @@ class _LorawanScreenState extends State<LorawanScreen> {
                             title: Text(snapshot.data.toString()),
                           )
                         ]);
-                      })
+                      }),
+                  ButtonTheme(
+                    minWidth: 240.0,
+                    child: RaisedButton(
+                      color: ThemeColors.buttonBackground,
+                      child: Text('Start Transmitting',
+                          style: ThemeTextStyles.button),
+                      textColor: Colors.white,
+                      onPressed: () => {
+                        _writeControl(1)
+                      },
+                    ),
+                  ),
+                  ButtonTheme(
+                    minWidth: 240.0,
+                    child: RaisedButton(
+                      color: ThemeColors.buttonBackground,
+                      child: Text('Stop Transmitting',
+                          style: ThemeTextStyles.button),
+                      textColor: Colors.white,
+                      onPressed: () => {
+                        _writeControl(0)
+                      },
+                    ),
+                  ),
+                  StreamBuilder<String>(
+                      stream: controlStreamController.stream,
+                      initialData: '',
+                      builder: (c, snapshot) {
+                        return Column(children: <Widget>[
+                          ListTile(
+                            title: Text(snapshot.data.toString()),
+                          )
+                        ]);
+                      }),
                 ])));
   }
 }

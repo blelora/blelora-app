@@ -20,9 +20,11 @@ class DeviceScreen extends StatefulWidget {
 class _DeviceScreenState extends State<DeviceScreen> {
   late BluetoothService dfuService;
   late BluetoothService uartService;
-  late BluetoothService credentialService;
+  late BluetoothService lorawanCredentialService;
+  late BluetoothService lorawanControlService;
   late BluetoothCharacteristic uartTxChar;
   late BluetoothCharacteristic uartRxChar;
+  late BluetoothCharacteristic controlChar;
   late BluetoothCharacteristic credentialDataChar;
   late BluetoothCharacteristic credentialStatusChar;
 
@@ -116,7 +118,10 @@ class _DeviceScreenState extends State<DeviceScreen> {
       uartService = services.singleWhere((s) =>
           s.uuid.toString() ==
           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
-      credentialService = services.singleWhere((s) =>
+      lorawanControlService = services.singleWhere((s) =>
+      s.uuid.toString() ==
+          "aaa00000-0000-0000-0000-123456789abc");
+      lorawanCredentialService = services.singleWhere((s) =>
           s.uuid.toString() ==
           "bbb00000-0000-0000-0000-123456789abc");
       if (uartService != null) {
@@ -127,17 +132,22 @@ class _DeviceScreenState extends State<DeviceScreen> {
         s.uuid.toString() ==
             "6e400003-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
       }
-      if (credentialService != null) {
-        credentialDataChar = credentialService.characteristics.singleWhere((s) =>
+      if (lorawanControlService != null) {
+        controlChar = lorawanControlService.characteristics.singleWhere((s) =>
+        s.uuid.toString() ==
+            "aaa10000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
+      }
+      if (lorawanCredentialService != null) {
+        credentialDataChar = lorawanCredentialService.characteristics.singleWhere((s) =>
         s.uuid.toString() ==
             "bbb10000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
-        credentialStatusChar = credentialService.characteristics.singleWhere((s) =>
+        credentialStatusChar = lorawanCredentialService.characteristics.singleWhere((s) =>
         s.uuid.toString() ==
             "bbb20000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
       }
       // print(dfuService);
       // print(uartService);
-      print(credentialService);
+      // print(lorawanCredentialService);
     } else {
       print("Error: Services is null");
     }
@@ -285,6 +295,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
                               .push(MaterialPageRoute(builder: (context) {
                             return LorawanScreen(
                               device: widget.device,
+                              controlChar: controlChar,
                               credentialDataChar: credentialDataChar,
                               credentialStatusChar: credentialStatusChar,
                             );
