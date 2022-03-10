@@ -42,6 +42,13 @@ class _DeviceScreenState extends State<DeviceScreen> {
   StreamController<bool> charReadStatusStreamController =
       StreamController<bool>.broadcast();
 
+  StreamController<bool> dfuCharStatusStreamController =
+      StreamController<bool>.broadcast();
+  StreamController<bool> uartCharStatusStreamController =
+      StreamController<bool>.broadcast();
+  StreamController<bool> lorawanCharStatusStreamController =
+      StreamController<bool>.broadcast();
+
   @override
   void dispose() {
     super.dispose();
@@ -59,12 +66,17 @@ class _DeviceScreenState extends State<DeviceScreen> {
     dfuProgressPercentStreamController.add(0.0);
     dfuProgressStatusStreamController.add("");
     charReadStatusStreamController.add(false);
+    dfuCharStatusStreamController.add(false);
+    uartCharStatusStreamController.add(false);
+    lorawanCharStatusStreamController.add(false);
 
     widget.device.state.listen((connectionState) {
       if (connectionState == BluetoothDeviceState.connected) {
         widget.device.discoverServices().then((services) {
-          print(services);
-          _findChars(services);
+          // print(services);
+          _findDfuChars(services);
+          _findUartChars(services);
+          _findLorawanChars(services);
           // public key
           charReadStatusStreamController.add(true);
         });
@@ -110,46 +122,65 @@ class _DeviceScreenState extends State<DeviceScreen> {
     }
   }
 
-  void _findChars(List<BluetoothService> services) {
-    if (services != null) {
+  void _findDfuChars(List<BluetoothService> services) {
+    try {
       dfuService = services.singleWhere((s) =>
           s.uuid.toString() ==
           "00001530-1212-efde-1523-785feabcd123"); // Nordic DFU Service
-      uartService = services.singleWhere((s) =>
-          s.uuid.toString() ==
-          "6e400001-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
-      lorawanControlService = services.singleWhere((s) =>
-      s.uuid.toString() ==
-          "aaa00000-0000-0000-0000-123456789abc");
-      lorawanCredentialService = services.singleWhere((s) =>
-          s.uuid.toString() ==
-          "bbb00000-0000-0000-0000-123456789abc");
-      if (uartService != null) {
-        uartRxChar = uartService.characteristics.singleWhere((s) =>
-        s.uuid.toString() ==
-            "6e400002-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
-        uartTxChar = uartService.characteristics.singleWhere((s) =>
-        s.uuid.toString() ==
-            "6e400003-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
+
+      dfuCharStatusStreamController.add(true);
+    } catch (e) {
+      print("No DFU Service Found");
+    }
+  }
+
+  void _findUartChars(List<BluetoothService> services) {
+    try {
+      if (services != null) {
+        uartService = services.singleWhere((s) =>
+            s.uuid.toString() ==
+            "6e400001-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
+        if (uartService != null) {
+          uartRxChar = uartService.characteristics.singleWhere((s) =>
+              s.uuid.toString() ==
+              "6e400002-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
+          uartTxChar = uartService.characteristics.singleWhere((s) =>
+              s.uuid.toString() ==
+              "6e400003-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
+        }
       }
-      if (lorawanControlService != null) {
-        controlChar = lorawanControlService.characteristics.singleWhere((s) =>
-        s.uuid.toString() ==
-            "aaa10000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
+      uartCharStatusStreamController.add(true);
+    } catch (e) {
+      print("No UART Service Found");
+    }
+  }
+
+  void _findLorawanChars(List<BluetoothService> services) {
+    try {
+      if (services != null) {
+        lorawanControlService = services.singleWhere(
+            (s) => s.uuid.toString() == "aaa00000-0000-0000-0000-123456789abc");
+        lorawanCredentialService = services.singleWhere(
+            (s) => s.uuid.toString() == "bbb00000-0000-0000-0000-123456789abc");
+        if (lorawanControlService != null) {
+          controlChar = lorawanControlService.characteristics.singleWhere((s) =>
+              s.uuid.toString() ==
+              "aaa10000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
+        }
+        if (lorawanCredentialService != null) {
+          credentialDataChar = lorawanCredentialService.characteristics
+              .singleWhere((s) =>
+                  s.uuid.toString() ==
+                  "bbb10000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
+          credentialStatusChar = lorawanCredentialService.characteristics
+              .singleWhere((s) =>
+                  s.uuid.toString() ==
+                  "bbb20000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
+        }
       }
-      if (lorawanCredentialService != null) {
-        credentialDataChar = lorawanCredentialService.characteristics.singleWhere((s) =>
-        s.uuid.toString() ==
-            "bbb10000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
-        credentialStatusChar = lorawanCredentialService.characteristics.singleWhere((s) =>
-        s.uuid.toString() ==
-            "bbb20000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
-      }
-      // print(dfuService);
-      // print(uartService);
-      // print(lorawanCredentialService);
-    } else {
-      print("Error: Services is null");
+      lorawanCharStatusStreamController.add(true);
+    } catch (e) {
+      print("No LoRaWAN Service Found");
     }
   }
 
@@ -230,7 +261,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
               title: Text('Device Firmware Update',
                   style: ThemeTextStyles.listTitle),
               trailing: StreamBuilder<bool>(
-                  stream: charReadStatusStreamController.stream,
+                  stream: dfuCharStatusStreamController.stream,
                   initialData: false,
                   builder: (c, snapshot) {
                     if (snapshot.data == true) {
@@ -255,7 +286,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
             ListTile(
               title: Text('UART', style: ThemeTextStyles.listTitle),
               trailing: StreamBuilder<bool>(
-                  stream: charReadStatusStreamController.stream,
+                  stream: uartCharStatusStreamController.stream,
                   initialData: false,
                   builder: (c, snapshot) {
                     if (snapshot.data == true) {
@@ -282,7 +313,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
             ListTile(
               title: Text('LoRaWAN', style: ThemeTextStyles.listTitle),
               trailing: StreamBuilder<bool>(
-                  stream: charReadStatusStreamController.stream,
+                  stream: lorawanCharStatusStreamController.stream,
                   initialData: false,
                   builder: (c, snapshot) {
                     if (snapshot.data == true) {

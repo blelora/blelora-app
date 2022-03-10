@@ -71,22 +71,19 @@ class _LorawanScreenState extends State<LorawanScreen> {
   }
 
   _writeControl(int ctrl) async {
-      widget.controlChar.write([ctrl]).then((value) {
-        widget.controlChar.setNotifyValue(true).then((value) {
-          print("control Char Notification Enabled Result " +
-              value.toString());
-          widget.controlChar.value.listen((value) {
-            print("control Char notification Result " +
-                value.toString());
-            if (value[0] == 0) {
-              controlStreamController.add("Not Transmitting");
-            } else if (value[0] == 1) {
-              controlStreamController.add("Transmitting");
-            }
-          });
+    widget.controlChar.write([ctrl]).then((value) {
+      widget.controlChar.setNotifyValue(true).then((value) {
+        print("control Char Notification Enabled Result " + value.toString());
+        widget.controlChar.value.listen((value) {
+          print("control Char notification Result " + value.toString());
+          if (value[0] == 0) {
+            controlStreamController.add("Not Transmitting");
+          } else if (value[0] == 1) {
+            controlStreamController.add("Transmitting");
+          }
         });
       });
-
+    });
   }
 
   _writeDataCredentials() async {
@@ -248,9 +245,7 @@ class _LorawanScreenState extends State<LorawanScreen> {
                       child: Text('Start Transmitting',
                           style: ThemeTextStyles.button),
                       textColor: Colors.white,
-                      onPressed: () => {
-                        _writeControl(1)
-                      },
+                      onPressed: () => {_writeControl(1)},
                     ),
                   ),
                   ButtonTheme(
@@ -260,9 +255,7 @@ class _LorawanScreenState extends State<LorawanScreen> {
                       child: Text('Stop Transmitting',
                           style: ThemeTextStyles.button),
                       textColor: Colors.white,
-                      onPressed: () => {
-                        _writeControl(0)
-                      },
+                      onPressed: () => {_writeControl(0)},
                     ),
                   ),
                   StreamBuilder<String>(
