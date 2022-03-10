@@ -107,7 +107,7 @@ class _UartScreenState extends State<UartScreen> {
                       // width: double.infinity,
                       // height: MediaQuery.of(context).size.height,
                       alignment: Alignment.bottomCenter,
-                      margin: const EdgeInsets.only(left: 5.0, right: 5.0),
+                      margin: const EdgeInsets.only(left: 5.0, right: 5.0, bottom: 15.0),
                       child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
