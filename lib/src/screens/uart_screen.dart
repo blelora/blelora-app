@@ -28,12 +28,19 @@ class _UartScreenState extends State<UartScreen> {
   StreamController<String> uartRxStreamController = StreamController<String>();
 
   var uartTxCharList = <String>[];
+  late ScrollController _controller;
+
+  void scrollToBottom() {
+    _controller.animateTo(_controller.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 400), curve: Curves.ease);
+  }
 
   @protected
   @mustCallSuper
   void initState() {
     super.initState();
 
+    _controller = ScrollController();
     uartTxStreamController.add(['']);
 
     widget.uartTxChar.setNotifyValue(true).then((value) {
@@ -42,6 +49,7 @@ class _UartScreenState extends State<UartScreen> {
         if (!uartTxStreamController.isClosed) {
           uartTxCharList.add(String.fromCharCodes(value));
           uartTxStreamController.add(uartTxCharList);
+          scrollToBottom();
         }
       });
       uartRxStreamController.stream.listen((value) {
@@ -68,13 +76,16 @@ class _UartScreenState extends State<UartScreen> {
           actions: <Widget>[],
         ),
         body: Padding(
-            padding: EdgeInsets.all(10.0),
+            padding: EdgeInsets.all(5.0),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   Expanded(
                     flex: 4,
-                    child: SingleChildScrollView(
+                    child: Container(
+                        child: SingleChildScrollView(
+                      physics: ClampingScrollPhysics(),
+                      controller: _controller,
                       scrollDirection: Axis.vertical,
                       child: StreamBuilder<List<String>>(
                           stream: uartTxStreamController.stream,
@@ -89,14 +100,14 @@ class _UartScreenState extends State<UartScreen> {
                               ),
                             );
                           }),
-                    ),
+                    )),
                   ),
                   // ),
                   Container(
                       // width: double.infinity,
                       // height: MediaQuery.of(context).size.height,
                       alignment: Alignment.bottomCenter,
-                      margin: const EdgeInsets.only(left: 5.0, right: 5.0),
+                      margin: const EdgeInsets.only(left: 5.0, right: 5.0, bottom: 15.0),
                       child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
