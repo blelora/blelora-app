@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:blelora_app/src/screens/uart_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_nordic_dfu/flutter_nordic_dfu.dart';
@@ -16,7 +17,10 @@ class DeviceScreen extends StatefulWidget {
 }
 
 class _DeviceScreenState extends State<DeviceScreen> {
-  late BluetoothCharacteristic dfuServiceControlChar;
+  late BluetoothService dfuService;
+  late BluetoothService uartService;
+  late BluetoothCharacteristic uartTxChar;
+  late BluetoothCharacteristic uartRxChar;
 
   bool foundChars = true;
   bool dfuRunning = false;
@@ -58,11 +62,9 @@ class _DeviceScreenState extends State<DeviceScreen> {
           // public key
           charReadStatusStreamController.add(true);
         });
+      } else {
+        charReadStatusStreamController.add(false);
       }
-      else
-        {
-          charReadStatusStreamController.add(false);
-        }
     });
   }
 
@@ -104,9 +106,22 @@ class _DeviceScreenState extends State<DeviceScreen> {
 
   void _findChars(List<BluetoothService> services) {
     if (services != null) {
-      var dfuService = services.singleWhere(
-          (s) => s.uuid.toString() == "00001530-1212-efde-1523-785feabcd123");
+      dfuService = services.singleWhere((s) =>
+          s.uuid.toString() ==
+          "00001530-1212-efde-1523-785feabcd123"); // Nordic DFU Service
+      uartService = services.singleWhere((s) =>
+          s.uuid.toString() ==
+          "6e400001-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
+      if (uartService != null) {
+        uartRxChar = uartService.characteristics.singleWhere((s) =>
+        s.uuid.toString() ==
+            "6e400002-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
+        uartTxChar = uartService.characteristics.singleWhere((s) =>
+        s.uuid.toString() ==
+            "6e400003-b5a3-f393-e0a9-e50e24dcca9e"); // Nordic UART Service
+      }
       print(dfuService);
+      print(uartService);
     } else {
       print("Error: Services is null");
     }
@@ -129,8 +144,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
         backgroundColor: ThemeColors.scaffoldBackground,
         appBar: AppBar(
           backgroundColor: ThemeColors.appBarBackground,
-          title: Text('Device Services',
-          style: ThemeTextStyles.appBarTitle),
+          title: Text('Device Services', style: ThemeTextStyles.appBarTitle),
           actions: <Widget>[
             StreamBuilder<BluetoothDeviceState>(
               stream: widget.device.state,
@@ -154,10 +168,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
                 }
                 return FlatButton(
                     onPressed: onPressed,
-                    child: Text(
-                      text,
-                        style: ThemeTextStyles.button
-                    ));
+                    child: Text(text, style: ThemeTextStyles.button));
               },
             )
           ],
@@ -169,11 +180,13 @@ class _DeviceScreenState extends State<DeviceScreen> {
               initialData: BluetoothDeviceState.connecting,
               builder: (c, snapshot) => ListTile(
                   leading: (snapshot.data == BluetoothDeviceState.connected)
-                      ? Icon(Icons.bluetooth_connected, color : Colors.blue)
+                      ? Icon(Icons.bluetooth_connected, color: Colors.blue)
                       : Icon(Icons.bluetooth_disabled),
                   title: (snapshot.data == BluetoothDeviceState.connected)
-                      ? Text('Connected to Device Bluetooth',style: ThemeTextStyles.listTitle)
-                      : Text('Disconnected from Device Bluetooth', style: ThemeTextStyles.listTitle),
+                      ? Text('Connected to Device Bluetooth',
+                          style: ThemeTextStyles.listTitle)
+                      : Text('Disconnected from Device Bluetooth',
+                          style: ThemeTextStyles.listTitle),
                   trailing: StreamBuilder<bool>(
                       stream: charReadStatusStreamController.stream,
                       initialData: false,
@@ -188,7 +201,8 @@ class _DeviceScreenState extends State<DeviceScreen> {
                       })),
             ),
             ListTile(
-              title: Text('Device Firmware Update', style: ThemeTextStyles.listTitle),
+              title: Text('Device Firmware Update',
+                  style: ThemeTextStyles.listTitle),
               trailing: StreamBuilder<bool>(
                   stream: charReadStatusStreamController.stream,
                   initialData: false,
@@ -203,6 +217,33 @@ class _DeviceScreenState extends State<DeviceScreen> {
                               .push(MaterialPageRoute(builder: (context) {
                             return DFUScreen(
                               device: widget.device,
+                            );
+                          }));
+                        },
+                      );
+                    } else {
+                      return Icon(null);
+                    }
+                  }),
+            ),
+            ListTile(
+              title: Text('UART', style: ThemeTextStyles.listTitle),
+              trailing: StreamBuilder<bool>(
+                  stream: charReadStatusStreamController.stream,
+                  initialData: false,
+                  builder: (c, snapshot) {
+                    if (snapshot.data == true) {
+                      return RaisedButton(
+                        child: Text('OPEN', style: ThemeTextStyles.button),
+                        color: ThemeColors.buttonBackground,
+                        textColor: Colors.white,
+                        onPressed: () {
+                          Navigator.of(context)
+                              .push(MaterialPageRoute(builder: (context) {
+                            return UartScreen(
+                              device: widget.device,
+                              uartRxChar: uartRxChar,
+                              uartTxChar: uartTxChar,
                             );
                           }));
                         },
