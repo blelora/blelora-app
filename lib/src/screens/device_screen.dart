@@ -22,11 +22,14 @@ class _DeviceScreenState extends State<DeviceScreen> {
   late BluetoothService uartService;
   late BluetoothService lorawanCredentialService;
   late BluetoothService lorawanControlService;
+  late BluetoothService lorawanSettingsService;
   late BluetoothCharacteristic uartTxChar;
   late BluetoothCharacteristic uartRxChar;
   late BluetoothCharacteristic controlChar;
   late BluetoothCharacteristic credentialDataChar;
   late BluetoothCharacteristic credentialStatusChar;
+  late BluetoothCharacteristic settingsDataChar;
+  late BluetoothCharacteristic settingsStatusChar;
 
   bool foundChars = true;
   bool dfuRunning = false;
@@ -162,6 +165,8 @@ class _DeviceScreenState extends State<DeviceScreen> {
             (s) => s.uuid.toString() == "aaa00000-0000-0000-0000-123456789abc");
         lorawanCredentialService = services.singleWhere(
             (s) => s.uuid.toString() == "bbb00000-0000-0000-0000-123456789abc");
+        lorawanSettingsService = services.singleWhere(
+                (s) => s.uuid.toString() == "ccc00000-0000-0000-0000-123456789abc");
         if (lorawanControlService != null) {
           controlChar = lorawanControlService.characteristics.singleWhere((s) =>
               s.uuid.toString() ==
@@ -176,6 +181,16 @@ class _DeviceScreenState extends State<DeviceScreen> {
               .singleWhere((s) =>
                   s.uuid.toString() ==
                   "bbb20000-0000-0000-0000-123456789abc"); // LoRaWAN Credential Char
+        }
+        if (lorawanSettingsService != null) {
+          settingsDataChar = lorawanSettingsService.characteristics
+              .singleWhere((s) =>
+          s.uuid.toString() ==
+              "ccc10000-0000-0000-0000-123456789abc"); // LoRaWAN Settings Char
+          settingsStatusChar = lorawanSettingsService.characteristics
+              .singleWhere((s) =>
+          s.uuid.toString() ==
+              "ccc20000-0000-0000-0000-123456789abc"); // LoRaWAN Settings Char
         }
       }
       lorawanCharStatusStreamController.add(true);
@@ -329,6 +344,8 @@ class _DeviceScreenState extends State<DeviceScreen> {
                               controlChar: controlChar,
                               credentialDataChar: credentialDataChar,
                               credentialStatusChar: credentialStatusChar,
+                              settingsDataChar: settingsDataChar,
+                              settingsStatusChar: settingsStatusChar,
                             );
                           }));
                         },

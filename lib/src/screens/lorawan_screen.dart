@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:blelora_app/src/utils/colors.dart';
@@ -12,16 +13,27 @@ class LorawanScreen extends StatefulWidget {
   final BluetoothCharacteristic controlChar;
   final BluetoothCharacteristic credentialDataChar;
   final BluetoothCharacteristic credentialStatusChar;
+  final BluetoothCharacteristic settingsDataChar;
+  final BluetoothCharacteristic settingsStatusChar;
   final devEuiTextController = TextEditingController();
   final appEuiTextController = TextEditingController();
   final appKeyTextController = TextEditingController();
+  final transmitRepeatTextController = TextEditingController();
+  final joinTrialsTextController = TextEditingController();
+  final txPowerTextController = TextEditingController();
+  final dataRateTextController = TextEditingController();
+  final subbandChannelsTextController = TextEditingController();
+  final appPortTextController = TextEditingController();
+  final loraRegionTextController = TextEditingController();
 
   LorawanScreen(
       {Key? key,
       required this.device,
       required this.controlChar,
       required this.credentialDataChar,
-      required this.credentialStatusChar})
+      required this.credentialStatusChar,
+      required this.settingsDataChar,
+      required this.settingsStatusChar})
       : super(key: key);
 
   @override
@@ -35,13 +47,24 @@ class _LorawanScreenState extends State<LorawanScreen> {
   StreamController<String> controlStreamController = StreamController<String>();
   StreamController<String> credentialsStatusStreamController =
       StreamController<String>();
+  StreamController<String> settingsStatusStreamController =
+      StreamController<String>();
+  StreamController<bool> adrEnabledStreamController = StreamController<bool>();
+  StreamController<bool> confirmedMessageStreamController =
+      StreamController<bool>();
+  StreamController<bool> transmitButtonStreamController =
+      StreamController<bool>();
+
+  bool adrEnabledSwitch = false;
+  bool confirmedMessageSwitch = false;
+  bool transmitButton = false;
 
   @protected
   @mustCallSuper
   void initState() {
     super.initState();
 
-    // Data Read
+    // Crential Data Read
     widget.credentialDataChar.read().then((value) {
       print("credential Data Char Read Result " + value.toString());
       List<int> creds = value;
@@ -53,16 +76,59 @@ class _LorawanScreenState extends State<LorawanScreen> {
           hex.encode(creds.getRange(8, 16).toList()).toUpperCase();
       widget.appKeyTextController.text =
           hex.encode(creds.getRange(16, 32).toList()).toUpperCase();
-      // Status Read
+      // Credential Status Read
       widget.credentialStatusChar.read().then((value) {
         print("credential Status Char Read Result " + value.toString());
-        widget.controlChar.read().then((value) {
-          print("Control Char Read Result " + value.toString());
-          if (value[0] == 0) {
-            controlStreamController.add("Not Transmitting");
-          } else if (value[0] == 1) {
-            controlStreamController.add("Transmitting");
-          }
+        // Settings Data Read
+        widget.settingsDataChar.read().then((value) {
+          print("settings Data Char Read Result " + value.toString());
+          List<int> settings = value;
+          print(settings);
+
+          print(ByteData.view(
+                  Uint8List.fromList(settings.getRange(0, 4).toList()).buffer)
+              .getUint32(0, Endian.little)); // Transmit Repeat Interval
+          print(settings[4]); // ADR Enabled true/false, toggle switch
+          print(settings[5]); // Join Trials 1- 100
+          print(settings[6]); // TX Power 0 - 15
+          print(settings[7]); // Data Rate 0 - 15
+          print(settings[8]); // Sub band channels 1 - 9
+          print(settings[9]); // App Port 1 - 223
+          print(settings[10]); // Confirmed Message true/false, toggle switch
+          print(settings[11]); // LoRa Region 0 - 12, dropdown
+
+          widget.transmitRepeatTextController.text = ByteData.view(
+                  Uint8List.fromList(settings.getRange(0, 4).toList()).buffer)
+              .getUint32(0, Endian.little)
+              .toString();
+          adrEnabledStreamController.add(settings[4] > 0);
+          adrEnabledSwitch = settings[4] > 0;
+          widget.joinTrialsTextController.text = settings[5].toString();
+          widget.txPowerTextController.text = settings[6].toString();
+          widget.dataRateTextController.text = settings[7].toString();
+          widget.subbandChannelsTextController.text = settings[8].toString();
+          widget.appPortTextController.text = settings[9].toString();
+          confirmedMessageStreamController.add(settings[10] > 0);
+          confirmedMessageSwitch = settings[10] > 0;
+          widget.loraRegionTextController.text = settings[11].toString();
+
+          // Settings Status Read
+          widget.settingsStatusChar.read().then((value) {
+            print("settings Status Char Read Result " + value.toString());
+            // Control Read
+            widget.controlChar.read().then((value) {
+              print("Control Char Read Result " + value.toString());
+              if (value[0] == 0) {
+                transmitButtonStreamController.add(false);
+                transmitButton = false;
+                controlStreamController.add("Not Transmitting");
+              } else if (value[0] == 1) {
+                transmitButtonStreamController.add(true);
+                transmitButton = true;
+                controlStreamController.add("Transmitting");
+              }
+            });
+          });
         });
       });
     });
@@ -70,15 +136,19 @@ class _LorawanScreenState extends State<LorawanScreen> {
     credentialsStatusStreamController.add("");
   }
 
-  _writeControl(int ctrl) async {
-    widget.controlChar.write([ctrl]).then((value) {
+  _writeControl(bool ctrl) async {
+    widget.controlChar.write([ctrl ? 1 : 0]).then((value) {
       widget.controlChar.setNotifyValue(true).then((value) {
         print("control Char Notification Enabled Result " + value.toString());
         widget.controlChar.value.listen((value) {
           print("control Char notification Result " + value.toString());
           if (value[0] == 0) {
+            transmitButtonStreamController.add(false);
+            transmitButton = false;
             controlStreamController.add("Not Transmitting");
           } else if (value[0] == 1) {
+            transmitButtonStreamController.add(true);
+            transmitButton = true;
             controlStreamController.add("Transmitting");
           }
         });
@@ -103,6 +173,29 @@ class _LorawanScreenState extends State<LorawanScreen> {
             } else if (value[0] == 2) {
               credentialsStatusStreamController
                   .add("Invalid Credential Lengths");
+            }
+          });
+        });
+      });
+    }
+  }
+
+  _writeDataSettings() async {
+    var settings = getSettingsList();
+    if (!settings.isEmpty) {
+      widget.settingsDataChar.write(settings).then((value) {
+        widget.settingsStatusChar.setNotifyValue(true).then((value) {
+          print("settings Status Char Notification Enabled Result " +
+              value.toString());
+          widget.settingsStatusChar.value.listen((value) {
+            print("credential Status Char notification Result " +
+                value.toString());
+            if (value[0] == 0) {
+              settingsStatusStreamController.add("");
+            } else if (value[0] == 1) {
+              settingsStatusStreamController.add("New Settings Accepted");
+            } else if (value[0] == 2) {
+              settingsStatusStreamController.add("Invalid Settings Lengths");
             }
           });
         });
@@ -140,6 +233,32 @@ class _LorawanScreenState extends State<LorawanScreen> {
     return creds;
   }
 
+  List<int> getSettingsList() {
+    List<int> settings = [];
+    try {
+      settings.addAll(Uint8List(4)
+        ..buffer.asByteData().setInt32(
+            0,
+            int.parse(widget.transmitRepeatTextController.text),
+            Endian.little)); // Transmit Repeat Interval
+      settings.addAll([adrEnabledSwitch ? 1 : 0]);
+      settings.addAll([int.parse(widget.joinTrialsTextController.text)]);
+      settings.addAll([int.parse(widget.txPowerTextController.text)]);
+      settings.addAll([int.parse(widget.dataRateTextController.text)]);
+      settings.addAll([int.parse(widget.subbandChannelsTextController.text)]);
+      settings.addAll([int.parse(widget.appPortTextController.text)]);
+      settings.addAll([confirmedMessageSwitch ? 1 : 0]);
+      settings.addAll([int.parse(widget.loraRegionTextController.text)]);
+      print(settings);
+    } on FormatException catch (e) {
+      print(e);
+      settings = [];
+      settingsStatusStreamController.add(e.message.toString());
+      return settings;
+    }
+    return settings;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,59 +269,89 @@ class _LorawanScreenState extends State<LorawanScreen> {
           backgroundColor: ThemeColors.appBarBackground,
           actions: <Widget>[],
         ),
-        body: Padding(
-            padding: EdgeInsets.all(10.0),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Container(
-                      // width: double.infinity,
-                      // height: MediaQuery.of(context).size.height,
-                      alignment: Alignment.bottomCenter,
-                      margin: const EdgeInsets.only(left: 5.0, right: 5.0),
-                      child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
+        body: SingleChildScrollView(
+            physics: ClampingScrollPhysics(),
+            scrollDirection: Axis.vertical,
+            child: Padding(
+                padding: EdgeInsets.all(5.0),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      // First child is enter comment text input
+                      TextFormField(
+                        inputFormatters: [
+                          new LengthLimitingTextInputFormatter(16),
+                        ],
+                        decoration: InputDecoration(
+                          labelText: 'DevEUI',
+                        ),
+                        controller: widget.devEuiTextController,
+                      ),
+                      TextFormField(
+                        inputFormatters: [
+                          new LengthLimitingTextInputFormatter(16),
+                        ],
+                        decoration: InputDecoration(
+                          labelText: 'AppEUI',
+                        ),
+                        controller: widget.appEuiTextController,
+                      ),
+                      TextFormField(
+                        inputFormatters: [
+                          new LengthLimitingTextInputFormatter(32),
+                        ],
+                        decoration: InputDecoration(
+                          labelText: 'AppKey',
+                        ),
+                        controller: widget.appKeyTextController,
+                      ),
+                      ButtonTheme(
+                        minWidth: 240.0,
+                        child: RaisedButton(
+                          color: ThemeColors.buttonBackground,
+                          child: Text('Save Credentials',
+                              style: ThemeTextStyles.button),
+                          textColor: Colors.white,
+                          onPressed: () => {_writeDataCredentials()},
+                        ),
+                      ),
+                      StreamBuilder<String>(
+                          stream: credentialsStatusStreamController.stream,
+                          initialData: '',
+                          builder: (c, snapshot) {
+                            return Text(
+                              snapshot.data.toString(),
+                              textAlign: TextAlign.center,
+                            );
+                          }),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            // First child is enter comment text input
+                            SizedBox(
+                                width: 160.0,
+                                child: TextFormField(
+                                  inputFormatters: [
+                                    new LengthLimitingTextInputFormatter(32),
+                                  ],
+                                  decoration: InputDecoration(
+                                    labelText: 'Transmit Repeat Interval (s)',
+                                  ),
+                                  controller:
+                                      widget.transmitRepeatTextController,
+                                  enabled: true,
+                                )),
                             Expanded(
                                 child: TextFormField(
                               inputFormatters: [
-                                new LengthLimitingTextInputFormatter(16),
+                                new LengthLimitingTextInputFormatter(32),
                               ],
                               decoration: InputDecoration(
-                                labelText: 'DevEUI',
+                                labelText: 'Join Trials',
                               ),
-                              controller: widget.devEuiTextController,
-                            ))
-                          ])),
-                  Container(
-                      // width: double.infinity,
-                      // height: MediaQuery.of(context).size.height,
-                      alignment: Alignment.bottomCenter,
-                      margin: const EdgeInsets.only(left: 5.0, right: 5.0),
-                      child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            // First child is enter comment text input
-                            Expanded(
-                                child: TextFormField(
-                              inputFormatters: [
-                                new LengthLimitingTextInputFormatter(16),
-                              ],
-                              decoration: InputDecoration(
-                                labelText: 'AppEUI',
-                              ),
-                              controller: widget.appEuiTextController,
-                            ))
-                          ])),
-                  Container(
-                      // width: double.infinity,
-                      // height: MediaQuery.of(context).size.height,
-                      alignment: Alignment.bottomCenter,
-                      margin: const EdgeInsets.only(left: 5.0, right: 5.0),
-                      child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
+                              controller: widget.joinTrialsTextController,
+                              enabled: true,
+                            )),
+
                             // First child is enter comment text input
                             Expanded(
                                 child: TextFormField(
@@ -210,64 +359,159 @@ class _LorawanScreenState extends State<LorawanScreen> {
                                 new LengthLimitingTextInputFormatter(32),
                               ],
                               decoration: InputDecoration(
-                                labelText: 'AppKey',
+                                labelText: 'TX Power',
                               ),
-                              controller: widget.appKeyTextController,
+                              controller: widget.txPowerTextController,
+                              enabled: true,
+                            )),
+
+                            Expanded(
+                                child: TextFormField(
+                              inputFormatters: [
+                                new LengthLimitingTextInputFormatter(32),
+                              ],
+                              decoration: InputDecoration(
+                                labelText: 'Data Rate',
+                              ),
+                              controller: widget.dataRateTextController,
+                              enabled: true,
                             ))
-                          ])),
-                  ButtonTheme(
-                    minWidth: 240.0,
-                    child: RaisedButton(
-                      color: ThemeColors.buttonBackground,
-                      child: Text('Save Credentials',
-                          style: ThemeTextStyles.button),
-                      textColor: Colors.white,
-                      onPressed: () => {
-                        // widget.credentialDataChar.write(getCredentialList())
-                        _writeDataCredentials()
-                      },
-                    ),
-                  ),
-                  StreamBuilder<String>(
-                      stream: credentialsStatusStreamController.stream,
-                      initialData: '',
-                      builder: (c, snapshot) {
-                        return Column(children: <Widget>[
-                          ListTile(
-                            title: Text(snapshot.data.toString()),
-                          )
-                        ]);
-                      }),
-                  ButtonTheme(
-                    minWidth: 240.0,
-                    child: RaisedButton(
-                      color: ThemeColors.buttonBackground,
-                      child: Text('Start Transmitting',
-                          style: ThemeTextStyles.button),
-                      textColor: Colors.white,
-                      onPressed: () => {_writeControl(1)},
-                    ),
-                  ),
-                  ButtonTheme(
-                    minWidth: 240.0,
-                    child: RaisedButton(
-                      color: ThemeColors.buttonBackground,
-                      child: Text('Stop Transmitting',
-                          style: ThemeTextStyles.button),
-                      textColor: Colors.white,
-                      onPressed: () => {_writeControl(0)},
-                    ),
-                  ),
-                  StreamBuilder<String>(
-                      stream: controlStreamController.stream,
-                      initialData: '',
-                      builder: (c, snapshot) {
-                        return Column(children: <Widget>[
-                          ListTile(
-                            title: Text(snapshot.data.toString()),
-                          )
-                        ]);
-                      }),
-                ])));
+                          ]),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Expanded(
+                                child: TextFormField(
+                              inputFormatters: [
+                                new LengthLimitingTextInputFormatter(32),
+                              ],
+                              decoration: InputDecoration(
+                                labelText: 'Subband Channels',
+                              ),
+                              controller: widget.subbandChannelsTextController,
+                              enabled: true,
+                            )),
+                            Expanded(
+                                child: TextFormField(
+                              inputFormatters: [
+                                new LengthLimitingTextInputFormatter(32),
+                              ],
+                              decoration: InputDecoration(
+                                labelText: 'App Port',
+                              ),
+                              controller: widget.appPortTextController,
+                              enabled: true,
+                            )),
+                            Expanded(
+                                child: TextFormField(
+                              inputFormatters: [
+                                new LengthLimitingTextInputFormatter(32),
+                              ],
+                              decoration: InputDecoration(
+                                labelText: 'LoRa Region',
+                              ),
+                              controller: widget.loraRegionTextController,
+                              enabled: true,
+                            )),
+                          ]),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // First child is enter comment text input
+                            Expanded(child: Text('ADR Enabled')),
+                            Expanded(
+                              child: StreamBuilder<bool>(
+                                  stream: adrEnabledStreamController.stream,
+                                  initialData: false,
+                                  builder: (c, snapshot) {
+                                    return Switch(
+                                      value: snapshot.data!,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          adrEnabledStreamController.add(value);
+                                          adrEnabledSwitch = value;
+                                        });
+                                      },
+                                      activeTrackColor: Colors.lightGreenAccent,
+                                      activeColor: Colors.green,
+                                    );
+                                  }),
+                            ),
+                            Expanded(child: Text('Confirmed Message')),
+                            Expanded(
+                              child: StreamBuilder<bool>(
+                                  stream:
+                                      confirmedMessageStreamController.stream,
+                                  initialData: false,
+                                  builder: (c, snapshot) {
+                                    return Switch(
+                                      value: snapshot.data!,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          confirmedMessageStreamController
+                                              .add(value);
+                                          confirmedMessageSwitch = value;
+                                        });
+                                      },
+                                      activeTrackColor: Colors.lightGreenAccent,
+                                      activeColor: Colors.green,
+                                    );
+                                  }),
+                            )
+                          ]),
+
+                      ButtonTheme(
+                        minWidth: 240.0,
+                        child: RaisedButton(
+                          color: ThemeColors.buttonBackground,
+                          child: Text('Save Settings',
+                              style: ThemeTextStyles.button),
+                          textColor: Colors.white,
+                          onPressed: () => {_writeDataSettings()},
+                        ),
+                      ),
+                      StreamBuilder<String>(
+                          stream: settingsStatusStreamController.stream,
+                          initialData: '',
+                          builder: (c, snapshot) {
+                            return Text(
+                              snapshot.data.toString(),
+                              textAlign: TextAlign.center,
+                            );
+                          }),
+
+                      StreamBuilder<bool>(
+                          stream: transmitButtonStreamController.stream,
+                          initialData: false,
+                          builder: (c, snapshot) {
+                            return ButtonTheme(
+                              minWidth: 240.0,
+                              child: RaisedButton(
+                                color: !snapshot.data!
+                                    ? ThemeColors.buttonBackground
+                                    : ThemeColors.buttonBackground,
+                                child: !snapshot.data!
+                                    ? Text('Start Transmitting',
+                                        style: ThemeTextStyles.button)
+                                    : Text('Stop Transmitting',
+                                        style: ThemeTextStyles.button),
+                                textColor: Colors.white,
+                                onPressed: () => {
+                                  _writeControl(!transmitButton),
+                                  transmitButton = !transmitButton,
+                                },
+                              ),
+                            );
+                          }),
+                      StreamBuilder<String>(
+                          stream: controlStreamController.stream,
+                          initialData: '',
+                          builder: (c, snapshot) {
+                            return Text(
+                              snapshot.data.toString(),
+                              textAlign: TextAlign.center,
+                            );
+                          }),
+                    ]))));
   }
 }
