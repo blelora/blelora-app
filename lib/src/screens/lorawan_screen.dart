@@ -24,7 +24,6 @@ class LorawanScreen extends StatefulWidget {
   final dataRateTextController = TextEditingController();
   final subbandChannelsTextController = TextEditingController();
   final appPortTextController = TextEditingController();
-  final loraRegionTextController = TextEditingController();
 
   LorawanScreen(
       {Key? key,
@@ -54,10 +53,33 @@ class _LorawanScreenState extends State<LorawanScreen> {
       StreamController<bool>();
   StreamController<bool> transmitButtonStreamController =
       StreamController<bool>();
+  StreamController<String> loraRegionStreamController =
+      StreamController<String>();
 
   bool adrEnabledSwitch = false;
   bool confirmedMessageSwitch = false;
   bool transmitButton = false;
+
+  String selectedLoraRegion = "0";
+
+  List<DropdownMenuItem<String>> get dropdownItems {
+    List<DropdownMenuItem<String>> menuItems = [
+      DropdownMenuItem(child: Text("AS923"), value: "0"),
+      DropdownMenuItem(child: Text("AU915"), value: "1"),
+      DropdownMenuItem(child: Text("CN470"), value: "2"),
+      DropdownMenuItem(child: Text("CN779"), value: "3"),
+      DropdownMenuItem(child: Text("EU433"), value: "4"),
+      DropdownMenuItem(child: Text("EU868"), value: "5"),
+      DropdownMenuItem(child: Text("KR920"), value: "6"),
+      DropdownMenuItem(child: Text("IN865"), value: "7"),
+      DropdownMenuItem(child: Text("US915"), value: "8"),
+      DropdownMenuItem(child: Text("AS923-2"), value: "9"),
+      DropdownMenuItem(child: Text("AS923-3"), value: "10"),
+      DropdownMenuItem(child: Text("AS923-4"), value: "11"),
+      DropdownMenuItem(child: Text("RU864"), value: "12"),
+    ];
+    return menuItems;
+  }
 
   @protected
   @mustCallSuper
@@ -110,7 +132,7 @@ class _LorawanScreenState extends State<LorawanScreen> {
           widget.appPortTextController.text = settings[9].toString();
           confirmedMessageStreamController.add(settings[10] > 0);
           confirmedMessageSwitch = settings[10] > 0;
-          widget.loraRegionTextController.text = settings[11].toString();
+          loraRegionStreamController.add(settings[11].toString());
 
           // Settings Status Read
           widget.settingsStatusChar.read().then((value) {
@@ -248,7 +270,7 @@ class _LorawanScreenState extends State<LorawanScreen> {
       settings.addAll([int.parse(widget.subbandChannelsTextController.text)]);
       settings.addAll([int.parse(widget.appPortTextController.text)]);
       settings.addAll([confirmedMessageSwitch ? 1 : 0]);
-      settings.addAll([int.parse(widget.loraRegionTextController.text)]);
+      settings.addAll([int.parse(selectedLoraRegion)]);
       print(settings);
     } on FormatException catch (e) {
       print(e);
@@ -402,17 +424,22 @@ class _LorawanScreenState extends State<LorawanScreen> {
                               controller: widget.appPortTextController,
                               enabled: true,
                             )),
-                            Expanded(
-                                child: TextFormField(
-                              inputFormatters: [
-                                new LengthLimitingTextInputFormatter(32),
-                              ],
-                              decoration: InputDecoration(
-                                labelText: 'LoRa Region',
-                              ),
-                              controller: widget.loraRegionTextController,
-                              enabled: true,
-                            )),
+                            StreamBuilder<String>(
+                                stream: loraRegionStreamController.stream,
+                                initialData: "0",
+                                builder: (c, snapshot) {
+                                  return Expanded(
+                                      child: DropdownButton(
+                                          value: snapshot.data,
+                                          onChanged: (String? newValue) {
+                                            setState(() {
+                                              selectedLoraRegion = newValue!;
+                                              loraRegionStreamController
+                                                  .add(newValue!);
+                                            });
+                                          },
+                                          items: dropdownItems));
+                                }),
                           ]),
                       Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
