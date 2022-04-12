@@ -648,7 +648,11 @@ class _LorawanScreenState extends State<LorawanScreen> {
                                               if (selectedLoraRegion == "0") {
                                                 dataRateStreamController
                                                     .add("2");
+                                              } else {
+                                                dataRateStreamController
+                                                    .add("0");
                                               }
+                                              txPowerStreamController.add("0");
                                             });
                                           },
                                           items: regionDropdownItems));
