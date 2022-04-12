@@ -55,14 +55,21 @@ class _LorawanScreenState extends State<LorawanScreen> {
       StreamController<bool>();
   StreamController<String> loraRegionStreamController =
       StreamController<String>();
+  StreamController<String> subbandStreamController = StreamController<String>();
+  StreamController<String> txPowerStreamController = StreamController<String>();
+  StreamController<String> dataRateStreamController =
+      StreamController<String>();
 
   bool adrEnabledSwitch = false;
   bool confirmedMessageSwitch = false;
   bool transmitButton = false;
 
   String selectedLoraRegion = "0";
+  String selectedSubband = "0";
+  String selectedTxPower = "0";
+  String selectedDataRate = "0";
 
-  List<DropdownMenuItem<String>> get dropdownItems {
+  List<DropdownMenuItem<String>> get regionDropdownItems {
     List<DropdownMenuItem<String>> menuItems = [
       DropdownMenuItem(child: Text("AS923"), value: "0"),
       DropdownMenuItem(child: Text("AU915"), value: "1"),
@@ -73,12 +80,196 @@ class _LorawanScreenState extends State<LorawanScreen> {
       DropdownMenuItem(child: Text("KR920"), value: "6"),
       DropdownMenuItem(child: Text("IN865"), value: "7"),
       DropdownMenuItem(child: Text("US915"), value: "8"),
-      DropdownMenuItem(child: Text("AS923-2"), value: "9"),
-      DropdownMenuItem(child: Text("AS923-3"), value: "10"),
-      DropdownMenuItem(child: Text("AS923-4"), value: "11"),
       DropdownMenuItem(child: Text("RU864"), value: "12"),
     ];
     return menuItems;
+  }
+
+  List<DropdownMenuItem<String>> get subbandDropdownItems {
+    List<DropdownMenuItem<String>> menuItems = [];
+    if (selectedLoraRegion == "8") {
+      menuItems = [
+        DropdownMenuItem(child: Text("1"), value: "1"),
+        DropdownMenuItem(child: Text("2"), value: "2"),
+        DropdownMenuItem(child: Text("3"), value: "3"),
+        DropdownMenuItem(child: Text("4"), value: "4"),
+        DropdownMenuItem(child: Text("5"), value: "5"),
+        DropdownMenuItem(child: Text("6"), value: "6"),
+        DropdownMenuItem(child: Text("7"), value: "7"),
+        DropdownMenuItem(child: Text("8"), value: "8"),
+      ];
+    }
+    return menuItems;
+  }
+
+  List<DropdownMenuItem<String>> get txPowerDropdownItems {
+    List<DropdownMenuItem<String>> txPowerMenuItems = [];
+    int start = 0;
+    int end = 14;
+    switch (selectedLoraRegion) {
+      case "0":
+        {
+          // AS923
+          start = 0;
+          end = 7;
+        }
+        break;
+      case "1":
+        {
+          // AU915
+          start = 0;
+          end = 14;
+        }
+        break;
+      case "2":
+        {
+          // CN470
+          start = 0;
+          end = 7;
+        }
+        break;
+      case "3":
+        {
+          // CN779
+          start = 0;
+          end = 5;
+        }
+        break;
+      case "4":
+        {
+          // EU433
+          start = 0;
+          end = 5;
+        }
+        break;
+      case "5": // EU868
+        {
+          start = 0;
+          end = 7;
+        }
+        break;
+      case "6": // KR920
+        {
+          start = 0;
+          end = 5;
+        }
+        break;
+      case "7": // IN865
+        {
+          start = 0;
+          end = 5;
+        }
+        break;
+      case "8": // US915
+        {
+          start = 0;
+          end = 14;
+        }
+        break;
+      case "12": // RU864
+        {
+          start = 0;
+          end = 5;
+        }
+        break;
+      default:
+        {
+          //statements;
+        }
+        break;
+    }
+
+    for (var i = start; i <= end; i++) {
+      txPowerMenuItems.add(
+          DropdownMenuItem(child: Text(i.toString()), value: i.toString()));
+    }
+
+    return txPowerMenuItems;
+  }
+
+  List<DropdownMenuItem<String>> get dataRateDropdownItems {
+    List<DropdownMenuItem<String>> dataRatesMenuItems = [];
+    int start = 0;
+    int end = 14;
+    switch (selectedLoraRegion) {
+      case "0":
+        {
+          // AS923
+          start = 2;
+          end = 5;
+        }
+        break;
+      case "1":
+        {
+          // AU915
+          start = 0;
+          end = 4;
+        }
+        break;
+      case "2":
+        {
+          // CN470
+          start = 0;
+          end = 5;
+        }
+        break;
+      case "3":
+        {
+          // CN779
+          start = 0;
+          end = 5;
+        }
+        break;
+      case "4":
+        {
+          // EU433
+          start = 0;
+          end = 5;
+        }
+        break;
+      case "5": // EU868
+        {
+          start = 0;
+          end = 5;
+        }
+        break;
+      case "6": // KR920
+        {
+          start = 0;
+          end = 5;
+        }
+        break;
+      case "7": // IN865
+        {
+          start = 0;
+          end = 5;
+        }
+        break;
+      case "8": // US915
+        {
+          start = 0;
+          end = 4;
+        }
+        break;
+      case "12": // RU864
+        {
+          start = 0;
+          end = 5;
+        }
+        break;
+      default:
+        {
+          //statements;
+        }
+        break;
+    }
+
+    for (var i = start; i <= end; i++) {
+      dataRatesMenuItems.add(
+          DropdownMenuItem(child: Text(i.toString()), value: i.toString()));
+    }
+
+    return dataRatesMenuItems;
   }
 
   @protected
@@ -126,13 +317,19 @@ class _LorawanScreenState extends State<LorawanScreen> {
           adrEnabledStreamController.add(settings[4] > 0);
           adrEnabledSwitch = settings[4] > 0;
           widget.joinTrialsTextController.text = settings[5].toString();
-          widget.txPowerTextController.text = settings[6].toString();
-          widget.dataRateTextController.text = settings[7].toString();
+          // widget.txPowerTextController.text = settings[6].toString();
+          // widget.dataRateTextController.text = settings[7].toString();
+
+          txPowerStreamController.add(settings[6].toString());
+          dataRateStreamController.add(settings[7].toString());
+
           widget.subbandChannelsTextController.text = settings[8].toString();
           widget.appPortTextController.text = settings[9].toString();
           confirmedMessageStreamController.add(settings[10] > 0);
           confirmedMessageSwitch = settings[10] > 0;
+
           loraRegionStreamController.add(settings[11].toString());
+          selectedLoraRegion = settings[11].toString();
 
           // Settings Status Read
           widget.settingsStatusChar.read().then((value) {
@@ -267,7 +464,7 @@ class _LorawanScreenState extends State<LorawanScreen> {
       settings.addAll([int.parse(widget.joinTrialsTextController.text)]);
       settings.addAll([int.parse(widget.txPowerTextController.text)]);
       settings.addAll([int.parse(widget.dataRateTextController.text)]);
-      settings.addAll([int.parse(widget.subbandChannelsTextController.text)]);
+      settings.addAll([int.parse(selectedSubband)]);
       settings.addAll([int.parse(widget.appPortTextController.text)]);
       settings.addAll([confirmedMessageSwitch ? 1 : 0]);
       settings.addAll([int.parse(selectedLoraRegion)]);
@@ -373,46 +570,58 @@ class _LorawanScreenState extends State<LorawanScreen> {
                               controller: widget.joinTrialsTextController,
                               enabled: true,
                             )),
-
-                            // First child is enter comment text input
-                            Expanded(
-                                child: TextFormField(
-                              inputFormatters: [
-                                new LengthLimitingTextInputFormatter(32),
-                              ],
-                              decoration: InputDecoration(
-                                labelText: 'TX Power',
-                              ),
-                              controller: widget.txPowerTextController,
-                              enabled: true,
-                            )),
-
-                            Expanded(
-                                child: TextFormField(
-                              inputFormatters: [
-                                new LengthLimitingTextInputFormatter(32),
-                              ],
-                              decoration: InputDecoration(
-                                labelText: 'Data Rate',
-                              ),
-                              controller: widget.dataRateTextController,
-                              enabled: true,
-                            ))
+                            StreamBuilder<String>(
+                                stream: txPowerStreamController.stream,
+                                initialData: "0",
+                                builder: (c, snapshot) {
+                                  return Expanded(
+                                      child: DropdownButton(
+                                          value: snapshot.data,
+                                          onChanged: (String? newValue) {
+                                            setState(() {
+                                              selectedTxPower = newValue!;
+                                              txPowerStreamController
+                                                  .add(newValue);
+                                            });
+                                          },
+                                          items: txPowerDropdownItems));
+                                }),
+                            StreamBuilder<String>(
+                                stream: dataRateStreamController.stream,
+                                initialData: "0",
+                                builder: (c, snapshot) {
+                                  return Expanded(
+                                      child: DropdownButton(
+                                          value: snapshot.data,
+                                          onChanged: (String? newValue) {
+                                            setState(() {
+                                              selectedDataRate = newValue!;
+                                              dataRateStreamController
+                                                  .add(newValue);
+                                            });
+                                          },
+                                          items: dataRateDropdownItems));
+                                }),
                           ]),
                       Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            Expanded(
-                                child: TextFormField(
-                              inputFormatters: [
-                                new LengthLimitingTextInputFormatter(32),
-                              ],
-                              decoration: InputDecoration(
-                                labelText: 'Subband Channels',
-                              ),
-                              controller: widget.subbandChannelsTextController,
-                              enabled: true,
-                            )),
+                            StreamBuilder<String>(
+                                stream: subbandStreamController.stream,
+                                initialData: "1",
+                                builder: (c, snapshot) {
+                                  return Expanded(
+                                      child: DropdownButton(
+                                          value: snapshot.data,
+                                          onChanged: (String? newValue) {
+                                            setState(() {
+                                              selectedSubband = newValue!;
+                                              subbandStreamController
+                                                  .add(newValue);
+                                            });
+                                          },
+                                          items: subbandDropdownItems));
+                                }),
                             Expanded(
                                 child: TextFormField(
                               inputFormatters: [
@@ -435,10 +644,14 @@ class _LorawanScreenState extends State<LorawanScreen> {
                                             setState(() {
                                               selectedLoraRegion = newValue!;
                                               loraRegionStreamController
-                                                  .add(newValue!);
+                                                  .add(newValue);
+                                              if (selectedLoraRegion == "0") {
+                                                dataRateStreamController
+                                                    .add("2");
+                                              }
                                             });
                                           },
-                                          items: dropdownItems));
+                                          items: regionDropdownItems));
                                 }),
                           ]),
                       Row(
