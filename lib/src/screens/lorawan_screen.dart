@@ -80,6 +80,9 @@ class _LorawanScreenState extends State<LorawanScreen> {
       DropdownMenuItem(child: Text("KR920"), value: "6"),
       DropdownMenuItem(child: Text("IN865"), value: "7"),
       DropdownMenuItem(child: Text("US915"), value: "8"),
+      DropdownMenuItem(child: Text("AS923-2"), value: "9"),
+      DropdownMenuItem(child: Text("AS923-3"), value: "10"),
+      DropdownMenuItem(child: Text("AS923-4"), value: "11"),
       DropdownMenuItem(child: Text("RU864"), value: "12"),
     ];
     return menuItems;
@@ -87,15 +90,15 @@ class _LorawanScreenState extends State<LorawanScreen> {
 
   List<DropdownMenuItem<String>> get subbandDropdownItems {
     List<DropdownMenuItem<String>> menuItems = [
-        DropdownMenuItem(child: Text("1"), value: "1"),
-        DropdownMenuItem(child: Text("2"), value: "2"),
-        DropdownMenuItem(child: Text("3"), value: "3"),
-        DropdownMenuItem(child: Text("4"), value: "4"),
-        DropdownMenuItem(child: Text("5"), value: "5"),
-        DropdownMenuItem(child: Text("6"), value: "6"),
-        DropdownMenuItem(child: Text("7"), value: "7"),
-        DropdownMenuItem(child: Text("8"), value: "8"),
-      ];
+      DropdownMenuItem(child: Text("1"), value: "1"),
+      DropdownMenuItem(child: Text("2"), value: "2"),
+      DropdownMenuItem(child: Text("3"), value: "3"),
+      DropdownMenuItem(child: Text("4"), value: "4"),
+      DropdownMenuItem(child: Text("5"), value: "5"),
+      DropdownMenuItem(child: Text("6"), value: "6"),
+      DropdownMenuItem(child: Text("7"), value: "7"),
+      DropdownMenuItem(child: Text("8"), value: "8"),
+    ];
     return menuItems;
   }
 
@@ -141,7 +144,6 @@ class _LorawanScreenState extends State<LorawanScreen> {
     widget.credentialDataChar.read().then((value) {
       print("credential Data Char Read Result " + value.toString());
       List<int> creds = value;
-      print(creds);
 
       widget.devEuiTextController.text =
           hex.encode(creds.getRange(0, 8).toList()).toUpperCase();
@@ -156,19 +158,21 @@ class _LorawanScreenState extends State<LorawanScreen> {
         widget.settingsDataChar.read().then((value) {
           print("settings Data Char Read Result " + value.toString());
           List<int> settings = value;
-          print(settings);
 
+          print("Transmit Repeat Interval:");
           print(ByteData.view(
                   Uint8List.fromList(settings.getRange(0, 4).toList()).buffer)
               .getUint32(0, Endian.little)); // Transmit Repeat Interval
-          print(settings[4]); // ADR Enabled true/false, toggle switch
-          print(settings[5]); // Join Trials 1- 100
-          print(settings[6]); // TX Power 0 - 15
-          print(settings[7]); // Data Rate 0 - 15
-          print(settings[8]); // Sub band channels 1 - 9
-          print(settings[9]); // App Port 1 - 223
-          print(settings[10]); // Confirmed Message true/false, toggle switch
-          print(settings[11]); // LoRa Region 0 - 12, dropdown
+          print(
+              "ADR Enabled: ${settings[4]}"); // ADR Enabled true/false, toggle switch
+          print("Join Trials: ${settings[5]}"); // Join Trials 1- 100
+          print("TX Power: ${settings[6]}"); // TX Power 0 - 15
+          print("Data Rate: ${settings[7]}"); // Data Rate 0 - 15
+          print("Sub band: ${settings[8]}"); // Sub band channels 1 - 9
+          print("App Port: ${settings[9]}"); // App Port 1 - 223
+          print(
+              "Confirmed Message: ${settings[10]}"); // Confirmed Message true/false, toggle switch
+          print("LoRa Region: ${settings[11]}"); // LoRa Region 0 - 12, dropdown
 
           widget.transmitRepeatTextController.text = ByteData.view(
                   Uint8List.fromList(settings.getRange(0, 4).toList()).buffer)
@@ -438,8 +442,7 @@ class _LorawanScreenState extends State<LorawanScreen> {
                                                   .add(newValue);
                                             });
                                           },
-                                          items: txPowerDropdownItems)
-                                  );
+                                          items: txPowerDropdownItems));
                                 }),
                             StreamBuilder<String>(
                                 stream: dataRateStreamController.stream,
@@ -518,7 +521,7 @@ class _LorawanScreenState extends State<LorawanScreen> {
                               controller: widget.appPortTextController,
                               enabled: true,
                             )),
-                    ]),
+                          ]),
                       Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
