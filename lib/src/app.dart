@@ -54,22 +54,24 @@ class _ParentWidgetState extends State<ParentWidget> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: ThemeColors.bottomNavigationBarBackground,
+        selectedLabelStyle: ThemeTextStyles.bottomNavBar,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             activeIcon: Icon(Icons.bluetooth, color: ThemeColors.bottomNavigationActiveIcon),
             icon: Icon(Icons.bluetooth, color: ThemeColors.bottomNavigationIcon),
-            title: Text('Devices', style: ThemeTextStyles.bottomNavBar),
+            label: 'Devices',
             backgroundColor: ThemeColors.bottomNavigationBarItemBackground,
           ),
           BottomNavigationBarItem(
             activeIcon: Icon(Icons.menu, color: ThemeColors.bottomNavigationActiveIcon),
             icon: Icon(Icons.menu, color: ThemeColors.bottomNavigationIcon),
-            title: Text('More', style: ThemeTextStyles.bottomNavBar),
+            label: 'More',
             backgroundColor: ThemeColors.bottomNavigationBarItemBackground,
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white,
         onTap: _onItemTapped,
       ),
     );
